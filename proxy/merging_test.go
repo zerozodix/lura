@@ -46,11 +46,11 @@ func TestNewMergeDataMiddleware_sequential(t *testing.T) {
 	timeout := 1000
 	endpoint := config.EndpointConfig{
 		Backend: []*config.Backend{
-			{URLPattern: "/"},
-			{URLPattern: "/aaa/{{.Resp0_array}}"},
-			{URLPattern: "/aaa/{{.Resp0_int}}/{{.Resp0_string}}/{{.Resp0_bool}}/{{.Resp0_float}}/{{.Resp0_struct.foo}}"},
-			{URLPattern: "/aaa/{{.Resp0_int}}/{{.Resp0_string}}/{{.Resp0_bool}}/{{.Resp0_float}}/{{.Resp0_struct.foo}}?x={{.Resp1_tupu}}"},
-			{URLPattern: "/aaa/{{.Resp0_struct.foo}}/{{.Resp0_struct.struct.foo}}/{{.Resp0_struct.struct.struct.foo}}"},
+			{Method: "GET", URLPattern: "/"},
+			{Method: "GET", URLPattern: "/aaa/{{.Resp0_array}}"},
+			{Method: "GET", URLPattern: "/aaa/{{.Resp0_int}}/{{.Resp0_string}}/{{.Resp0_bool}}/{{.Resp0_float}}/{{.Resp0_struct.foo}}"},
+			{Method: "GET", URLPattern: "/aaa/{{.Resp0_int}}/{{.Resp0_string}}/{{.Resp0_bool}}/{{.Resp0_float}}/{{.Resp0_struct.foo}}?x={{.Resp1_tupu}}"},
+			{Method: "GET", URLPattern: "/aaa/{{.Resp0_struct.foo}}/{{.Resp0_struct.struct.foo}}/{{.Resp0_struct.struct.struct.foo}}"},
 		},
 		Timeout: time.Duration(timeout) * time.Millisecond,
 		ExtraConfig: config.ExtraConfig{

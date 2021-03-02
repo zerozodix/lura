@@ -32,11 +32,16 @@ func NewMergeDataMiddleware(endpointConfig *config.EndpointConfig) Middleware {
 			return parallelMerge(serviceTimeout, combiner, next...)
 		}
 
-		patterns := make([]string, len(endpointConfig.Backend))
+		patterns := make([]string, len(next))
 		for i, b := range endpointConfig.Backend {
 			patterns[i] = b.URLPattern
 		}
-		return sequentialMerge(patterns, serviceTimeout, combiner, next...)
+
+		if endpointConfig.Backend[len(next)-1].Method != "GET" {
+			return sequentialMerge(patterns, serviceTimeout, combiner, CloneRequest, next...)
+		}
+
+		return sequentialMerge(patterns, serviceTimeout, combiner, identityRequestGenerator, next...)
 	}
 }
 
@@ -81,10 +86,15 @@ func parallelMerge(timeout time.Duration, rc ResponseCombiner, next ...Proxy) Pr
 
 var reMergeKey = regexp.MustCompile(`\{\{\.Resp(\d+)_([\d\w-_\.]+)\}\}`)
 
-func sequentialMerge(patterns []string, timeout time.Duration, rc ResponseCombiner, next ...Proxy) Proxy {
+type requestGenerator func(*Request) *Request
+
+func identityRequestGenerator(r *Request) *Request { return r }
+
+func sequentialMerge(patterns []string, timeout time.Duration, rc ResponseCombiner, rg requestGenerator, next ...Proxy) Proxy {
 	return func(ctx context.Context, request *Request) (*Response, error) {
 		localCtx, cancel := context.WithTimeout(ctx, timeout)
 
+		latestRequest := rg(request)
 		parts := make([]*Response, len(next))
 		out := make(chan *Response, 1)
 		errCh := make(chan error, 1)
@@ -151,7 +161,13 @@ func sequentialMerge(patterns []string, timeout time.Duration, rc ResponseCombin
 					}
 				}
 			}
+
+			if i == len(next)-1 {
+				latestRequest.Params = request.Params
+				request = latestRequest
+			}
 			requestPart(localCtx, n, request, out, errCh)
+
 			select {
 			case err := <-errCh:
 				if i == 0 {
